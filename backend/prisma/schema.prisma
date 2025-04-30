@@ -1,0 +1,27 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL") // Loads from .env file
+}
+
+// Define the model for storing addresses
+model Address {
+  id          String   @id @default(cuid()) // Unique ID
+  code6D      String   @unique // The generated 6D code - should be unique
+  name        String   // User's full name
+  mobile      String   @unique // Mobile number - should be unique
+  latitude    Float    // Precise Latitude
+  longitude   Float    // Precise Longitude
+  sublocality String?  // Optional address context
+  locality    String?  // Optional address context
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([mobile]) // Index mobile for faster lookups later
+}

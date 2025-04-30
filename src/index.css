@@ -1,0 +1,54 @@
+/* Define Poppins font variants */
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Regular.woff2') format('woff2');
+  font-weight: 400; /* normal */
+  font-style: normal;
+  font-display: swap; /* Use fallback font while loading */
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Medium.woff2') format('woff2');
+  font-weight: 500; /* medium */
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-SemiBold.woff2') format('woff2');
+  font-weight: 600; /* semibold */
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Poppins';
+  src: url('/fonts/Poppins-Bold.woff2') format('woff2');
+  font-weight: 700; /* bold */
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Inject Tailwind's base, components, and utilities styles */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom cursor for the Google Map container */
+/* Targets the direct child div holding the map tiles */
+.map-container-style > div:first-child {
+    cursor: crosshair !important; /* You can change 'crosshair' to 'grab', 'pointer', etc. */
+}
+
+/* Optional: Add some base body styles */
+body {
+  /* Apply Poppins font globally via tailwind.config.js font-sans definition */
+  @apply antialiased text-gray-800 bg-gray-50;
+}
+
+/* Optional: Smoother scroll behavior */
+html {
+  scroll-behavior: smooth;
+}
