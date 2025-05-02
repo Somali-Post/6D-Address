@@ -41,7 +41,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 // --- Component ---
 const RegisterMapPage: React.FC = () => {
     const { isLoaded, loadError } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "", libraries: MAP_LIBRARIES });
-
+useEffect(() => { console.log({ apiKeyProvided: import.meta.env.VITE_GOOGLE_MAPS_API_KEY?.length > 0, isLoaded, loadError }); }, [isLoaded, loadError]);
     // --- State & Refs ---
     const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
