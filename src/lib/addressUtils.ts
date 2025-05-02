@@ -1,10 +1,3 @@
-// import { getGeohashChars } from './geohashMappings'; // <-- REMOVE or COMMENT OUT this line
-
-/**
- * *** ADDED: Defines the Base32 character set for Geohash encoding ***
- * Mimics the expected export from the missing geohashMappings file.
- * @returns A string containing the 32 valid Geohash characters.
- */
 const getGeohashChars = (): string => {
     return "0123456789bcdefghjkmnpqrstuvwxyz"; // Standard Geohash Base32 characters
 };
@@ -73,7 +66,7 @@ export function generate6DCode(latitude: number, longitude: number): string | nu
 
     let resultCode = '';
     const bitsPerChar = 5;
-    const geohashChars = getGeohashChars(); // *** NOW USES THE LOCAL FUNCTION ***
+    const geohashChars = getGeohashChars(); // Now uses the local function
 
     for (let i = 0; i < binaryCombined.length; i += bitsPerChar) {
         const chunk = binaryCombined.substring(i, i + bitsPerChar);
@@ -121,17 +114,15 @@ export function get11mSquareBounds(lat: number, lon: number): google.maps.LatLng
     const east = lon + lonDelta;
     const west = lon - lonDelta;
 
-    // Ensure bounds are within valid geographical ranges (optional but good practice)
+    // Ensure latitude bounds are within valid geographical range
     const clampedNorth = Math.min(north, 90);
     const clampedSouth = Math.max(south, -90);
-    const clampedEast = lon + lonDelta; // Longitude wraps around, usually handled by mapping libraries
-    const clampedWest = lon - lonDelta; // Longitude wraps around, usually handled by mapping libraries
 
+    // *** REMOVED unused clampedEast/clampedWest variables ***
+    // const clampedEast = lon + lonDelta; // Longitude wraps around, usually handled by mapping libraries
+    // const clampedWest = lon - lonDelta; // Longitude wraps around, usually handled by mapping libraries
 
-    // It's generally better to let the mapping library handle longitude wrapping.
-    // Return potentially >180 or <-180 values if that's what the calculation yields.
+    // Return the calculated bounds. Longitude wrapping is handled by mapping library.
     return { north: clampedNorth, south: clampedSouth, east: east, west: west };
 
-    // // Simpler return without clamping, often sufficient:
-    // return { north, south, east, west };
 }
