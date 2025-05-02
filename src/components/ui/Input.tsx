@@ -1,49 +1,74 @@
-import React, { forwardRef } from 'react'; // Import forwardRef
+import React, { InputHTMLAttributes, forwardRef } from 'react';
 
-// Define the props the Input component accepts
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
-  label?: string;
-  error?: string | null | undefined;
-  id: string;
-  className?: string;
+// Define the props for the Input component
+// Extends standard HTML input attributes
+export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+  label?: string;         // Optional label text
+  id: string;            // Input element ID (required for label association)
+  error?: string;         // Optional error message
+  className?: string;     // Allow custom styling for the input itself
+  labelClassName?: string;// Allow custom styling for the label
+  containerClassName?: string; // Allow custom styling for the container div
+  icon?: React.ReactNode; // *** FIX: Add optional icon prop ***
 }
 
-// Use forwardRef to allow passing refs to the underlying input element
-// The component now receives 'props' and 'ref' as arguments
-const Input = forwardRef<HTMLInputElement, InputProps>(({
-  label,
-  id,
-  error = null,
-  className = '',
-  type = 'text',
-  ...props // Spread the rest of the standard input props
-}, ref) => { // The ref is passed as the second argument
+// Using forwardRef to allow parent components to get a ref to the input element
+const Input = forwardRef<HTMLInputElement, InputProps>(
+  (
+    {
+      label,
+      id,
+      error,
+      className = '',
+      labelClassName = '',
+      containerClassName = '',
+      icon,             // Destructure the new icon prop
+      ...props          // Pass remaining standard input props
+    },
+    ref // The forwarded ref
+  ) => {
+    const baseInputClasses = "block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm";
+    const errorInputClasses = "border-red-500 focus:ring-red-500 focus:border-red-500";
+    const inputClasses = `${baseInputClasses} ${error ? errorInputClasses : ''} ${icon ? 'pl-10' : ''} ${className}`; // Add left padding if icon exists
 
-  const baseStyle = 'block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-1 sm:text-sm disabled:bg-gray-50 disabled:cursor-not-allowed placeholder-gray-400';
-  const focusStyle = 'focus:ring-blue-500 focus:border-blue-500';
-  const errorStyle = 'border-red-500 focus:ring-red-500 focus:border-red-500';
+    const baseLabelClasses = "block text-sm font-medium text-gray-700";
+    const labelClasses = `${baseLabelClasses} ${labelClassName}`;
 
-  return (
-    <div className="w-full">
-      {label && (
-        <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1.5">
-          {label}
-        </label>
-      )}
-      <input
-        // Pass the forwarded ref directly to the native input element
-        ref={ref}
-        id={id}
-        type={type}
-        className={`${baseStyle} ${error ? errorStyle : focusStyle} ${className}`}
-        {...props} // Spread other props like value, onChange, etc.
-      />
-      {error && <p className="mt-1.5 text-xs text-red-600">{error}</p>}
-    </div>
-  );
-});
+    const containerClasses = `relative ${containerClassName}`; // Make container relative for icon positioning
 
-// Set a display name for debugging purposes (optional but good practice)
+    return (
+      <div className={containerClasses}>
+        {label && (
+          <label htmlFor={id} className={labelClasses}>
+            {label}
+          </label>
+        )}
+        {/* *** FIX: Render icon if provided *** */}
+        {icon && (
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            {/* Adjust styling (text color, size) as needed */}
+            {icon}
+          </div>
+        )}
+        <input
+          id={id}
+          ref={ref}
+          className={inputClasses}
+          aria-invalid={error ? "true" : "false"}
+          aria-describedby={error ? `${id}-error` : undefined}
+          {...props} // Spread the rest of the input props (type, placeholder, value, onChange, etc.)
+        />
+        {error && (
+          <p id={`${id}-error`} className="mt-1 text-xs text-red-600" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    );
+  }
+);
+
+// Set display name for component for better debugging
 Input.displayName = 'Input';
 
 export default Input;
