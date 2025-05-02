@@ -1,14 +1,15 @@
-import React, { ButtonHTMLAttributes, forwardRef } from 'react';
+// import React, { ButtonHTMLAttributes, forwardRef } from 'react'; // <-- REMOVED React import
+import { ButtonHTMLAttributes, forwardRef } from 'react'; // <-- Keep only necessary imports
 
 // Define allowed variants and sizes
 type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'link';
-type ButtonSize = 'sm' | 'md' | 'lg'; // *** FIX: Add size type ***
+type ButtonSize = 'sm' | 'md' | 'lg';
 
 // Define the props for the Button component
 // Extends standard HTML button attributes
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
-  size?: ButtonSize;      // *** FIX: Add optional size prop ***
+  size?: ButtonSize;
   isLoading?: boolean;    // Optional loading state
   className?: string;     // Allow custom classes to be passed
 }
@@ -19,7 +20,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     {
       children,
       variant = 'primary', // Default variant
-      size = 'md',        // *** FIX: Default size to 'md' ***
+      size = 'md',        // Default size to 'md'
       isLoading = false,
       className = '',
       disabled,            // Get disabled prop
@@ -39,7 +40,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       link: "border-transparent text-blue-600 hover:text-blue-800 focus:ring-blue-500 underline shadow-none border-none bg-transparent", // Example link
     };
 
-    // *** FIX: Classes for different sizes ***
+    // Classes for different sizes
     const sizeClasses: Record<ButtonSize, string> = {
        sm: "px-3 py-1.5 text-xs",      // Smaller padding and text
        md: "px-4 py-2 text-sm",       // Default/Medium padding and text
