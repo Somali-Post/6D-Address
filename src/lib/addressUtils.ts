@@ -1,37 +1,22 @@
-import { getGeohashChars } from './geohashMappings';
+// import { getGeohashChars } from './geohashMappings'; // <-- REMOVE or COMMENT OUT this line
+
+/**
+ * *** ADDED: Defines the Base32 character set for Geohash encoding ***
+ * Mimics the expected export from the missing geohashMappings file.
+ * @returns A string containing the 32 valid Geohash characters.
+ */
+const getGeohashChars = (): string => {
+    return "0123456789bcdefghjkmnpqrstuvwxyz"; // Standard Geohash Base32 characters
+};
 
 /**
  * Converts degrees to radians.
+ * Needed for get11mSquareBounds calculation.
  * @param degrees - The angle in degrees.
  * @returns The angle in radians.
  */
 function degreesToRadians(degrees: number): number {
     return degrees * (Math.PI / 180);
-}
-
-/**
- * Calculates the great-circle distance between two points
- * on the Earth's surface using the Haversine formula.
- * @param lat1 - Latitude of the first point in decimal degrees.
- * @param lon1 - Longitude of the first point in decimal degrees.
- * @param lat2 - Latitude of the second point in decimal degrees.
- * @param lon2 - Longitude of the second point in decimal degrees.
- * @returns The distance between the two points in kilometers.
- */
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const earthRadiusKm = 6371; // Earth's radius in kilometers
-
-    const dLat = degreesToRadians(lat2 - lat1);
-    const dLon = degreesToRadians(lon2 - lon1);
-
-    const radLat1 = degreesToRadians(lat1);
-    const radLat2 = degreesToRadians(lat2);
-
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(radLat1) * Math.cos(radLat2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-    return earthRadiusKm * c;
 }
 
 /**
@@ -88,7 +73,7 @@ export function generate6DCode(latitude: number, longitude: number): string | nu
 
     let resultCode = '';
     const bitsPerChar = 5;
-    const geohashChars = getGeohashChars(); // Get the valid characters
+    const geohashChars = getGeohashChars(); // *** NOW USES THE LOCAL FUNCTION ***
 
     for (let i = 0; i < binaryCombined.length; i += bitsPerChar) {
         const chunk = binaryCombined.substring(i, i + bitsPerChar);
@@ -136,55 +121,17 @@ export function get11mSquareBounds(lat: number, lon: number): google.maps.LatLng
     const east = lon + lonDelta;
     const west = lon - lonDelta;
 
-    return { north, south, east, west };
+    // Ensure bounds are within valid geographical ranges (optional but good practice)
+    const clampedNorth = Math.min(north, 90);
+    const clampedSouth = Math.max(south, -90);
+    const clampedEast = lon + lonDelta; // Longitude wraps around, usually handled by mapping libraries
+    const clampedWest = lon - lonDelta; // Longitude wraps around, usually handled by mapping libraries
+
+
+    // It's generally better to let the mapping library handle longitude wrapping.
+    // Return potentially >180 or <-180 values if that's what the calculation yields.
+    return { north: clampedNorth, south: clampedSouth, east: east, west: west };
+
+    // // Simpler return without clamping, often sufficient:
+    // return { north, south, east, west };
 }
-
-
-// Potentially keep this for future reference or other calculations
-/**
- * Simple decoder attempt (for understanding, not production grade without Geohash library)
- * This is illustrative and likely not accurate for decoding without the full Geohash algorithm.
- */
-// export function decode6DCode(code: string): { latitude: number; longitude: number; } | null {
-//     if (!code || code.length !== 6) return null;
-
-//     let binaryString = '';
-//     const geohashChars = getGeohashChars();
-//     const bitsPerChar = 5;
-
-//     for (let char of code.toLowerCase()) {
-//         const index = geohashChars.indexOf(char);
-//         if (index === -1) return null; // Invalid character
-//         binaryString += index.toString(2).padStart(bitsPerChar, '0');
-//     }
-
-//     // Simplified interleaving reverse (assuming Lon first)
-//     let binaryLat = '';
-//     let binaryLon = '';
-//     for(let i = 0; i < binaryString.length; i++){
-//         if(i % 2 === 0) binaryLon += binaryString[i];
-//         else binaryLat += binaryString[i];
-//     }
-
-//     // Simplified range refinement
-//     const latRange = [-90.0, 90.0];
-//     const lonRange = [-180.0, 180.0];
-
-//     for(let bit of binaryLat){
-//         const mid = (latRange[0] + latRange[1]) / 2;
-//         if(bit === '1') latRange[0] = mid;
-//         else latRange[1] = mid;
-//     }
-
-//     for(let bit of binaryLon){
-//         const mid = (lonRange[0] + lonRange[1]) / 2;
-//         if(bit === '1') lonRange[0] = mid;
-//         else lonRange[1] = mid;
-//     }
-
-//     // Return the center of the final bounding box
-//     const latitude = (latRange[0] + latRange[1]) / 2;
-//     const longitude = (lonRange[0] + lonRange[1]) / 2;
-
-//     return { latitude, longitude };
-// }
