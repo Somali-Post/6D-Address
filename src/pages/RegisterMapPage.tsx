@@ -4,7 +4,7 @@ import {
   useJsApiLoader,
   Marker,
   Rectangle,
-  Libraries
+  Libraries // Ensure Libraries type is imported
 } from '@react-google-maps/api';
 
 // --- Imports ---
@@ -22,17 +22,27 @@ type SquareBounds = google.maps.LatLngBoundsLiteral;
 type RegistrationPhase = 'selectLocation' | 'enterDetails' | 'verifyOtp' | 'submitted';
 
 // --- Constants ---
-const MAP_LIBRARIES: Libraries = ['geometry'];
-const MAP_CONTAINER_STYLE = { width: '100%', height: '450px', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e5e7eb', position: 'relative' };
+const MAP_LIBRARIES: Libraries = ['geometry']; // Specify required libraries for Google Maps
+
+// *** FIX: Explicitly type MAP_CONTAINER_STYLE ***
+const MAP_CONTAINER_STYLE: React.CSSProperties = {
+    width: '100%',
+    height: '450px',
+    borderRadius: '0.5rem',
+    marginBottom: '1.5rem',
+    border: '1px solid #e5e7eb',
+    position: 'relative' // 'position' now correctly understood as CSS property
+};
+
 const MOGADISHU_CENTER = { lat: 2.0469, lng: 45.3182 };
-const MAP_OPTIONS: google.maps.MapOptions = { disableDefaultUI: true, zoomControl: true, zoomControlOptions: { position: "RIGHT_BOTTOM" as unknown as google.maps.ControlPosition }, mapTypeControl: false, streetViewControl: false, fullscreenControl: false, minZoom: 5, gestureHandling: 'greedy', clickableIcons: false, draggableCursor: 'crosshair', draggingCursor: 'grabbing', };
+const MAP_OPTIONS: google.maps.MapOptions = { disableDefaultUI: true, zoomControl: true, zoomControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM }, mapTypeControl: false, streetViewControl: false, fullscreenControl: false, minZoom: 5, gestureHandling: 'greedy', clickableIcons: false, draggableCursor: 'crosshair', draggingCursor: 'grabbing', };
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'; // Use env variable or default
 
 // --- Component ---
 const RegisterMapPage: React.FC = () => {
     const { isLoaded, loadError } = useJsApiLoader({ id: 'google-map-script', googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || "", libraries: MAP_LIBRARIES });
 
-    // --- State & Refs --- (Remain the same)
+    // --- State & Refs ---
     const [mapInstance, setMapInstance] = useState<google.maps.Map | null>(null);
     const [selectedPosition, setSelectedPosition] = useState<Position | null>(null);
     const [generatedCode, setGeneratedCode] = useState<string | null>(null);
@@ -54,13 +64,13 @@ const RegisterMapPage: React.FC = () => {
     const mobileInputRef = useRef<HTMLInputElement>(null);
     const otpInputRef = useRef<HTMLInputElement>(null);
 
-    // --- Callbacks --- (onMapLoad, onUnmount, handleMapClick, handleLocateMe remain the same)
+    // --- Callbacks ---
     const onMapLoad = useCallback((map: google.maps.Map) => { map.setOptions({ draggableCursor: 'crosshair', draggingCursor: 'grabbing', clickableIcons: false }); setMapInstance(map); map.setCenter(MOGADISHU_CENTER); map.setZoom(14); }, []);
     const onUnmount = useCallback(() => { setMapInstance(null); }, []);
     const handleMapClick = useCallback((event: google.maps.MapMouseEvent) => { if (!event.latLng) return; const clickedPos: Position = { lat: event.latLng.lat(), lng: event.latLng.lng() }; setSelectedPosition(clickedPos); setGeneratedCode(null); setAddressContext(null); setSquareBounds(null); setError(null); setCurrentPhase('enterDetails'); setIsMobileVerified(false); setOtp(''); setIsLoadingGeocode(true); setCopied(false); setTimeout(() => nameInputRef.current?.focus(), 300); }, []); // Removed mapInstance dependency as panTo removed
     const handleLocateMe = useCallback(() => { if (!mapInstance || !navigator.geolocation) { setError("Geolocation not supported or map not ready."); return; } setIsLocating(true); setError(null); navigator.geolocation.getCurrentPosition( (position) => { const userPos = { lat: position.coords.latitude, lng: position.coords.longitude }; mapInstance.panTo(userPos); mapInstance.setZoom(17); handleMapClick({ latLng: new google.maps.LatLng(userPos.lat, userPos.lng) } as google.maps.MapMouseEvent); setIsLocating(false); }, (geoError) => { let errorMsg = "Could not get location."; switch (geoError.code) { case geoError.PERMISSION_DENIED: errorMsg = "Location permission denied."; break; case geoError.POSITION_UNAVAILABLE: errorMsg = "Location unavailable."; break; case geoError.TIMEOUT: errorMsg = "Location request timed out."; break; } console.error("Geolocation Error:", geoError); setError(errorMsg); setIsLocating(false); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 } ); }, [mapInstance, handleMapClick]);
 
-    // --- Effect for Processing Location --- (Remains the same)
+    // --- Effect for Processing Location ---
     useEffect(() => { if (!selectedPosition) { setIsLoadingGeocode(false); return; } let isActive = true; let accumulatedError: string | null = null; const processSelectedLocation = async () => { setIsLoadingGeocode(true); const code = generate6DCode(selectedPosition.lat, selectedPosition.lng); if (isActive) setGeneratedCode(code); if (!code) { accumulatedError = "Could not generate code."; console.warn("Code generation failed", selectedPosition); } const bounds = get11mSquareBounds(selectedPosition.lat, selectedPosition.lng); if (isActive) setSquareBounds(bounds); try { const geocodeResult = await reverseGeocode(selectedPosition.lat, selectedPosition.lng); if (isActive) { if (geocodeResult === null) { const geoErrorMsg = "Failed to fetch address details."; accumulatedError = accumulatedError ? `${accumulatedError} | ${geoErrorMsg}` : geoErrorMsg; setAddressContext(null); } else { setAddressContext(geocodeResult); if (geocodeResult.error) { accumulatedError = accumulatedError ? `${accumulatedError} | ${geocodeResult.error}` : geocodeResult.error; } } } } catch (err) { console.error("Geocoding process failed unexpectedly:", err); if (isActive) { const unexpectedErrorMsg = "Unexpected error fetching address."; accumulatedError = accumulatedError ? `${accumulatedError} | ${unexpectedErrorMsg}` : unexpectedErrorMsg; setAddressContext(null); } } finally { if (isActive) { setError(accumulatedError); setIsLoadingGeocode(false); } } }; processSelectedLocation(); return () => { isActive = false; }; }, [selectedPosition]);
 
     // --- Event Handlers ---
@@ -68,7 +78,8 @@ const RegisterMapPage: React.FC = () => {
     const handleMobileChange = (event: React.ChangeEvent<HTMLInputElement>) => { setMobileNumber(event.target.value); setIsMobileVerified(false); setOtp(''); if(currentPhase === 'submitted') setCurrentPhase('enterDetails'); };
     const handleOtpChange = (event: React.ChangeEvent<HTMLInputElement>) => setOtp(event.target.value);
 
-    // --- >>> MODIFIED handleSendOtp: Call Backend <<< ---
+    // --- Backend Interaction Callbacks (Send OTP, Verify OTP, Submit) ---
+
     const handleSendOtp = async () => { // Make async
         setError(null);
         if (!mobileNumber || (mobileInputRef.current && !mobileInputRef.current.checkValidity())) {
@@ -105,7 +116,6 @@ const RegisterMapPage: React.FC = () => {
         }
     };
 
-    // --- >>> MODIFIED handleVerifyOtp: Call Backend <<< ---
     const handleVerifyOtp = async () => { // Make async
         setError(null);
         if (!otp || otp.length < 4) {
@@ -144,9 +154,8 @@ const RegisterMapPage: React.FC = () => {
         }
     };
 
-    const handleCopyCode = () => { /* ... same */ if(generatedCode) { navigator.clipboard.writeText(generatedCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(err => { console.error("Copy failed: ", err); setError("Could not copy code."); }); } };
+    const handleCopyCode = () => { if(generatedCode) { navigator.clipboard.writeText(generatedCode).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }).catch(err => { console.error("Copy failed: ", err); setError("Could not copy code."); }); } };
 
-    // --- >>> MODIFIED handleSubmitRegistration: Call Backend <<< ---
     const handleSubmitRegistration = async (event: React.FormEvent) => { // Make async
         event.preventDefault();
         setError(null);
@@ -202,10 +211,9 @@ const RegisterMapPage: React.FC = () => {
         }
     };
 
-    const handleRegisterAnother = () => { /* ... same */ setCurrentPhase('selectLocation'); setSelectedPosition(null); setGeneratedCode(null); setAddressContext(null); setName(''); setMobileNumber(''); setOtp(''); setIsMobileVerified(false); setError(null); setCopied(false); setSquareBounds(null); };
+    const handleRegisterAnother = () => { setCurrentPhase('selectLocation'); setSelectedPosition(null); setGeneratedCode(null); setAddressContext(null); setName(''); setMobileNumber(''); setOtp(''); setIsMobileVerified(false); setError(null); setCopied(false); setSquareBounds(null); };
 
-
-    // --- Render Logic --- (No changes needed in the JSX structure itself)
+    // --- Render Logic ---
     if (loadError) { return <ErrorMessage className="m-4" message={`Error loading Google Maps: ${loadError.message}. Check API key/internet.`} />; }
 
     let customMarkerOptions: google.maps.Symbol | google.maps.Icon | undefined = undefined;
@@ -221,7 +229,7 @@ const RegisterMapPage: React.FC = () => {
            <h2 className="text-2xl font-semibold mb-2 text-gray-800 flex items-center"> <FiMapPin className="mr-2 text-blue-600" /> {currentPhase === 'selectLocation' ? '1. Select Location' : 'Location Selected'} </h2>
            <p className="text-sm text-gray-600 mb-4"> {currentPhase === 'selectLocation' ? 'Click map to pinpoint location.' : 'Click map to change location.'} </p>
            {!isLoaded ? ( <div style={MAP_CONTAINER_STYLE} className="flex items-center justify-center bg-gray-100 border rounded-lg"> <LoadingSpinner message="Loading Map..." size="lg" /> </div> ) : (
-               <div style={MAP_CONTAINER_STYLE}>
+               <div style={MAP_CONTAINER_STYLE}> {/* Using the constant which now has explicit type */}
                    <button onClick={handleLocateMe} disabled={isLocating} title="Show My Location" className="absolute top-3 right-3 z-10 bg-white p-2.5 rounded-full shadow-md text-gray-600 hover:text-blue-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-wait transition" style={{ transform: 'translateZ(0)' }} > {isLocating ? ( <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> ) : ( <FiCrosshair className="h-5 w-5" /> )} </button>
                    <GoogleMap mapContainerStyle={{ width:'100%', height:'100%', borderRadius:'inherit'}} center={MOGADISHU_CENTER} zoom={14} options={MAP_OPTIONS} onLoad={onMapLoad} onUnmount={onUnmount} onClick={handleMapClick} >
                       {selectedPosition && ( <Marker position={selectedPosition} icon={customMarkerOptions} /> )}
@@ -264,4 +272,4 @@ const RegisterMapPage: React.FC = () => {
     );
 };
 
-export default RegisterMapPage; // <-- The essential export line
+export default RegisterMapPage;
