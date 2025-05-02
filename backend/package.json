@@ -1,17 +1,23 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "dist/server.js",
+  "description": "Backend for 6D Address service",
+  "main": "dist/src/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts" 
+    "clean": "rm -rf dist",
+    "build": "npm run clean && prisma generate && tsc",
+    "start": "node dist/src/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "engines": {
+     "node": "18.x"
+   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
     "cors": "^2.8.5",
