@@ -2,12 +2,12 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "Backend for 6D Address service",
-  "main": "dist/server.js",  // CORRECTED PATH: Removed '/src'
+  "main": "dist/server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf dist",
     "build": "npm run clean && prisma generate && tsc",
-    "start": "node dist/server.js", // CORRECTED PATH: Removed '/src'
+    "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "migrate:dev": "prisma migrate dev",
     "migrate:deploy": "prisma migrate deploy"
