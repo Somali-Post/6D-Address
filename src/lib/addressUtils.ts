@@ -78,50 +78,42 @@ export function generate6DCode(lat: number, lon: number): string | null {
    * @returns A Google Maps LatLngBoundsLiteral object or null if input is invalid.
    */
   export function get11mSquareBounds(lat: number, lon: number): google.maps.LatLngBoundsLiteral | null {
-      try {
-          if (isNaN(lat) || isNaN(lon)) {
-              console.error('Invalid Lat/Lon input for bounds calculation:', { lat, lon });
-              return null;
-          }
-  
-          const precisionFactor = 10000; // Based on 4th decimal place
-          const step = 0.0001; // Corresponds to ~11.1 meters at the equator
-  
-          // Calculate the base latitude and longitude floored to the 4th decimal place
-          // We use the sign of the original lat/lon to determine the direction of the step
-          const latSign = Math.sign(lat) || 1; // Handle lat = 0
-          const lonSign = Math.sign(lon) || 1; // Handle lon = 0
-  
-          // Floor the absolute value, then reapply sign if needed, although for bounds SW corner it might be simpler
-          // Let's calculate the SW corner based on truncating towards zero (or negative infinity)
-          const latBase = Math.floor(lat * precisionFactor) / precisionFactor;
-          const lonBase = Math.floor(lon * precisionFactor) / precisionFactor;
-  
-  
-          // Determine corners based on the base. Add step to get NE corner.
-          const south = latBase;
-          const west = lonBase;
-          // Add step based on the sign to ensure the square expands away from the equator/prime meridian correctly
-          // Although for simple bounding box, just adding positive step might be sufficient visually
-          const north = latBase + step;
-          const east = lonBase + step;
-  
-          // Ensure bounds don't exceed world limits (-90 to 90 lat, -180 to 180 lon)
-          // Note: Simple clamping might slightly distort the square near poles/dateline, but okay for this purpose.
-          const clampedSouth = Math.max(-90, south);
-          const clampedWest = Math.max(-180, west);
-          const clampedNorth = Math.min(90, north);
-          const clampedEast = Math.min(180, east);
-  
-  
-          return {
-              south: clampedSouth,
-              west: clampedWest,
-              north: clampedNorth,
-              east: clampedEast,
-          };
-      } catch (error) {
-          console.error("Error calculating 11m square bounds:", error);
-          return null;
-      }
-  }
+    try {
+        if (isNaN(lat) || isNaN(lon)) {
+            console.error('Invalid Lat/Lon input for bounds calculation:', { lat, lon });
+            return null;
+        }
+
+        const precisionFactor = 10000; // Based on 4th decimal place
+        const step = 0.0001; // Corresponds to ~11.1 meters at the equator
+
+        // Calculate the base latitude and longitude floored to the 4th decimal place
+        const latBase = Math.floor(lat * precisionFactor) / precisionFactor;
+        const lonBase = Math.floor(lon * precisionFactor) / precisionFactor;
+
+        // --- latSign and lonSign removed as they weren't used ---
+
+        // Determine corners based on the base. Add step to get NE corner.
+        const south = latBase;
+        const west = lonBase;
+        const north = latBase + step;
+        const east = lonBase + step;
+
+        // Ensure bounds don't exceed world limits
+        const clampedSouth = Math.max(-90, south);
+        const clampedWest = Math.max(-180, west);
+        const clampedNorth = Math.min(90, north);
+        const clampedEast = Math.min(180, east);
+
+        return {
+            south: clampedSouth,
+            west: clampedWest,
+            north: clampedNorth,
+            east: clampedEast,
+        };
+    } catch (error) {
+        console.error("Error calculating 11m square bounds:", error);
+        return null;
+    }
+}
+ 

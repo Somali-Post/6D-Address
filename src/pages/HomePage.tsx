@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FiCheckCircle, FiMap, FiSend, FiPhone, FiArrowRight } from 'react-icons/fi';
+import { FiCheckCircle, FiMap, FiSend, FiArrowRight } from 'react-icons/fi';
 
 const HomePage: React.FC = () => {
   return (
