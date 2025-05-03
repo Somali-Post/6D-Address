@@ -1,12 +1,3 @@
-// Potentially keep these if needed by other functions, otherwise remove if truly unused
-const getGeohashChars = (): string => {
-  return "0123456789bcdefghjkmnpqrstuvwxyz";
-};
-function degreesToRadians(degrees: number): number {
-  return degrees * (Math.PI / 180);
-}
-
-
 /**
 * Generates the 6-digit non-reversible code from latitude and longitude.
 * Format: P1P2-P3P4-P5P6
