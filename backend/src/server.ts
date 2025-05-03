@@ -3,16 +3,28 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import prisma from './db'; // Import the Prisma client instance
 
-// Load environment variables from .env file
+// Load environment variables from .env file (primarily for local development)
 dotenv.config();
 
 const app: Express = express();
-// Use port from .env (defined in backend/.env) or default to 3001
-const port = process.env.BACKEND_PORT || 3001;
+// *** CORRECTED: Use PORT environment variable provided by Render/hosting, default to 3001 locally ***
+const PORT = process.env.PORT || 3001;
 
 // --- Middlewares ---
+// TODO: For production, restrict origin to your Netlify frontend URL(s)
+// Example: const allowedOrigins = ['https://6d-address.netlify.app', 'https://yourcustomdomain.com'];
+// app.use(cors({
+//     origin: function (origin, callback) {
+//       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error('Not allowed by CORS'));
+//       }
+//     }
+// }));
+// For now, allowing all origins:
 app.use(cors({
-    origin: '*' // Allow all origins for development
+    origin: '*' // Allow all origins for initial testing
 }));
 app.use(express.json()); // Enable parsing JSON request bodies
 
@@ -94,7 +106,7 @@ app.post('/send-otp', (req: Request, res: Response) => {
     // ---
 
     // Respond success (even for simulation)
-    res.status(200).json({ message: 'Simulated OTP sent successfully.' }); // Line 99 area
+    res.status(200).json({ message: 'Simulated OTP sent successfully.' });
 });
 
 // Endpoint to SIMULATE verifying an OTP
@@ -115,12 +127,25 @@ app.post('/verify-otp', (req: Request, res: Response) => {
         res.status(200).json({ message: 'OTP verified successfully.' });
     } else {
         console.log('Simulated incorrect OTP.');
-        res.status(400).json({ message: 'Incorrect verification code.' }); // Line 117 area
+        res.status(400).json({ message: 'Incorrect verification code.' });
     }
 });
 
 
 // --- Start Server ---
-app.listen(port, () => {
-  console.log(`⚡️[server]: Backend server is running at http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`⚡️[server]: Backend server is running at http://localhost:${PORT}`); // Log message reflects the actual port
+});
+
+
+// Optional: Graceful shutdown handlers
+process.on('SIGTERM', () => {
+    console.log('SIGTERM signal received: closing HTTP server')
+    // Add potential cleanup like closing DB connections if needed (Prisma often handles this)
+    process.exit(0)
+});
+
+process.on('SIGINT', () => {
+    console.log('SIGINT signal received: closing HTTP server')
+    process.exit(0)
 });
