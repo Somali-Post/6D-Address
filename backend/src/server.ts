@@ -3,27 +3,46 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import prisma from './db'; // Import the Prisma client instance
 
-// --- Firebase Admin ---
+// backend/src/server.ts
 import admin from 'firebase-admin';
-// --- Import the middleware (Create this file next!) ---
-import { verifyFirebaseToken, AuthenticatedRequest } from './middleware/firebaseAuthMiddleware'; // Adjust path if needed
+// ... other imports ...
 
-// Load environment variables from .env file
-dotenv.config();
+dotenv.config(); // Make sure dotenv runs before accessing process.env
 
 // --- Firebase Admin Initialization ---
-// !!! IMPORTANT: Replace with the actual path to your downloaded service account key file !!!
-// !!! Add this key file's name to backend/.gitignore !!!
-const serviceAccountPath = './d-address-455414-firebase-adminsdk-fbsvc-bc97f23cf8.json'; // <-- CHANGE THIS PATH
-
 try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccountPath)
-  });
-  console.log('[server]: Firebase Admin SDK initialized successfully.');
+    // Check for the environment variable containing the JSON key content
+    const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+
+    if (serviceAccountJson) {
+        // --- Production / Deployed Environment ---
+        // Parse the JSON string from the environment variable
+        const serviceAccount = JSON.parse(serviceAccountJson);
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccount)
+        });
+        console.log('[server]: Firebase Admin SDK initialized successfully using ENV variable.');
+
+    } else {
+        // --- Local Development Environment ---
+        // Fallback to using the local file path
+        // Make sure this path is correct relative to where the server runs LOCALLY
+        // and the file exists there.
+        const serviceAccountPath = './d-address-455414-firebase-adminsdk-fbsvc-bc97f23cf8.json';
+        // Check if file exists locally before trying to use it (optional but good practice)
+        // import fs from 'fs'; // Add this import at the top if using fs.existsSync
+        // if (!fs.existsSync(serviceAccountPath)) {
+        //    throw new Error(`Service account file not found at: ${serviceAccountPath}. Check path.`);
+        // }
+        admin.initializeApp({
+            credential: admin.credential.cert(serviceAccountPath)
+        });
+        console.log('[server]: Firebase Admin SDK initialized successfully using file path.');
+    }
+
 } catch (error) {
   console.error('[server]: Error initializing Firebase Admin SDK:', error);
-  // Consider exiting if Firebase Admin fails, depending on your app's needs
+  // Consider exiting if initialization is critical
   // process.exit(1);
 }
 // --- End Firebase Admin Initialization ---
