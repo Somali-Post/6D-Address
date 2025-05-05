@@ -12,7 +12,7 @@ import {
 // --- Firebase Imports ---
 // Make sure 'firebase' package is installed (npm install firebase)
 import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth';
-// *** FIXED: Corrected path to firebase.ts ***
+// Adjust the path if your firebase.ts is elsewhere (e.g., ../lib/firebase)
 import { auth } from '../lib/firebase';
 
 // --- Local Imports ---
@@ -32,8 +32,14 @@ type RegistrationPhase = 'selectLocation' | 'enterDetails' | 'verifyOtp' | 'subm
 
 // --- Constants ---
 const MAP_LIBRARIES: Libraries = ['geometry']; // Define libraries if needed
-// *** FIXED: Added React.CSSProperties type ***
-const MAP_CONTAINER_STYLE: React.CSSProperties = { width: '100%', height: '450px', borderRadius: '0.5rem', marginBottom: '1.5rem', border: '1px solid #e5e7eb', position: 'relative' };
+const MAP_CONTAINER_STYLE: React.CSSProperties = { // Add : React.CSSProperties here
+    width: '100%',
+    height: '450px',
+    borderRadius: '0.5rem',
+    marginBottom: '1.5rem',
+    border: '1px solid #e5e7eb',
+    position: 'relative'
+};
 const MOGADISHU_CENTER = { lat: 2.0469, lng: 45.3182 };
 const MAP_OPTIONS: google.maps.MapOptions = { disableDefaultUI: true, zoomControl: true, zoomControlOptions: { position: "RIGHT_BOTTOM" as unknown as google.maps.ControlPosition }, mapTypeControl: false, streetViewControl: false, fullscreenControl: false, minZoom: 5, gestureHandling: 'greedy', clickableIcons: false, draggableCursor: 'crosshair', draggingCursor: 'grabbing', };
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'; // Use env variable or default
@@ -73,6 +79,18 @@ const RegisterMapPage: React.FC = () => {
     const otpInputRef = useRef<HTMLInputElement>(null);
     const recaptchaVerifierRef = useRef<RecaptchaVerifier | null>(null); // Ref for reCAPTCHA instance
 
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // +++ DEBUG LOG FOR ENVIRONMENT VARIABLES +++
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    useEffect(() => {
+      console.log('RegisterMapPage VITE_GOOGLE_GEOCODING_API_KEY:', import.meta.env.VITE_GOOGLE_GEOCODING_API_KEY);
+      console.log('RegisterMapPage VITE_FIREBASE_API_KEY:', import.meta.env.VITE_FIREBASE_API_KEY);
+    }, []); // Empty dependency array means it runs once on mount
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    // +++ END DEBUG LOG +++
+    // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
     // --- Setup reCAPTCHA Verifier ---
     const setupRecaptcha = useCallback(() => {
         // Ensure cleanup on unmount or re-render if necessary
@@ -82,7 +100,6 @@ const RegisterMapPage: React.FC = () => {
 
         recaptchaVerifierRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
             'size': 'invisible', // Use 'invisible' for less user friction
-            // *** FIXED: Changed response to _response to indicate unused parameter ***
             'callback': (_response: any) => {
                 console.log("reCAPTCHA verified (invisible)");
                 // Usually triggers OTP sending automatically after this with invisible
@@ -446,8 +463,7 @@ const RegisterMapPage: React.FC = () => {
                 ) : (
                     <div style={MAP_CONTAINER_STYLE}>
                         {/* Locate Me Button */}
-                         {/* *** FIXED: Added type assertion for inline style *** */}
-                        <button onClick={handleLocateMe} disabled={isLocating} title="Show My Location" className="absolute top-3 right-3 z-10 bg-white p-2.5 rounded-full shadow-md text-gray-600 hover:text-blue-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-wait transition" style={{ transform: 'translateZ(0)' } as React.CSSProperties} >
+                        <button onClick={handleLocateMe} disabled={isLocating} title="Show My Location" className="absolute top-3 right-3 z-10 bg-white p-2.5 rounded-full shadow-md text-gray-600 hover:text-blue-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-wait transition" style={{ transform: 'translateZ(0)' }} >
                             {isLocating ? ( <svg className="animate-spin h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"> <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle> <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path> </svg> ) : ( <FiCrosshair className="h-5 w-5" /> )}
                         </button>
                         {/* Google Map Component */}
@@ -462,7 +478,6 @@ const RegisterMapPage: React.FC = () => {
             {/* Details Column */}
             <div className="lg:col-span-1 flex flex-col space-y-5">
                  {/* --- reCAPTCHA Container (Must exist in the DOM for RecaptchaVerifier) --- */}
-                 {/* It's okay for this to be empty if using 'invisible' reCAPTCHA size */}
                  <div id="recaptcha-container"></div>
 
                 {/* Initial State Message */}
