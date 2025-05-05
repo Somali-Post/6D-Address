@@ -24,3 +24,5 @@ dist-ssr
 *.sw?
 .env.local
 backend/.env
+
+d-address-455414-firebase-adminsdk-fbsvc-bc97f23cf8.json

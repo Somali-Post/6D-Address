@@ -20,8 +20,15 @@ model Address {
   longitude   Float    // Precise Longitude
   sublocality String?  // Optional address context
   locality    String?  // Optional address context
+
+  // --- Added Field ---
+  firebaseUid String?  @unique // Store Firebase UID, optional, unique
+
+  // --- Timestamps ---
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   @@index([mobile]) // Index mobile for faster lookups later
+  // Optional: Index firebaseUid if you query by it frequently
+  // @@index([firebaseUid])
 }

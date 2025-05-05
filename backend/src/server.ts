@@ -3,28 +3,39 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import prisma from './db'; // Import the Prisma client instance
 
-// Load environment variables from .env file (primarily for local development)
+// --- Firebase Admin ---
+import admin from 'firebase-admin';
+// --- Import the middleware (Create this file next!) ---
+import { verifyFirebaseToken, AuthenticatedRequest } from './middleware/firebaseAuthMiddleware'; // Adjust path if needed
+
+// Load environment variables from .env file
 dotenv.config();
 
+// --- Firebase Admin Initialization ---
+// !!! IMPORTANT: Replace with the actual path to your downloaded service account key file !!!
+// !!! Add this key file's name to backend/.gitignore !!!
+const serviceAccountPath = './d-address-455414-firebase-adminsdk-fbsvc-bc97f23cf8.json'; // <-- CHANGE THIS PATH
+
+try {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccountPath)
+  });
+  console.log('[server]: Firebase Admin SDK initialized successfully.');
+} catch (error) {
+  console.error('[server]: Error initializing Firebase Admin SDK:', error);
+  // Consider exiting if Firebase Admin fails, depending on your app's needs
+  // process.exit(1);
+}
+// --- End Firebase Admin Initialization ---
+
+
 const app: Express = express();
-// *** CORRECTED: Use PORT environment variable provided by Render/hosting, default to 3001 locally ***
 const PORT = process.env.PORT || 3001;
 
 // --- Middlewares ---
-// TODO: For production, restrict origin to your Netlify frontend URL(s)
-// Example: const allowedOrigins = ['https://6d-address.netlify.app', 'https://yourcustomdomain.com'];
-// app.use(cors({
-//     origin: function (origin, callback) {
-//       if (!origin || allowedOrigins.indexOf(origin) !== -1) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error('Not allowed by CORS'));
-//       }
-//     }
-// }));
-// For now, allowing all origins:
+// For production, restrict origin to your Netlify frontend URL(s)
 app.use(cors({
-    origin: '*' // Allow all origins for initial testing
+    origin: '*' // Allow all origins for initial testing - CHANGE FOR PRODUCTION!
 }));
 app.use(express.json()); // Enable parsing JSON request bodies
 
@@ -36,29 +47,39 @@ app.get('/', (req: Request, res: Response) => {
 // --- API Routes ---
 
 // Endpoint to handle registration submission
-app.post('/register', async (req: Request, res: Response) => {
-    // Destructure with careful handling for potentially missing context
-    const { name, mobile, code6D, latitude, longitude, context } = req.body;
+// *** ADDED verifyFirebaseToken middleware ***
+app.post('/register', verifyFirebaseToken, async (req: AuthenticatedRequest, res: Response) => {
+    // If code reaches here, the token was verified by the middleware
+    // The middleware also attached `req.user` containing the decoded token
+
+    const { name, mobile, code6D, latitude, longitude, context, firebaseToken /* token is used by middleware, not needed here */ } = req.body;
+    const firebaseUid = req.user?.uid; // Get UID from verified token
+    const verifiedPhoneNumber = req.user?.phone_number; // Get phone from verified token
+
+    console.log(`[Register]: Processing VERIFIED registration for UID: ${firebaseUid}, Phone: ${verifiedPhoneNumber}`);
+
 
     // --- Basic Backend Validation ---
     if (!name || !mobile || !code6D || latitude == null || longitude == null) {
         console.warn('Registration attempt missing required data:', { name, mobile, code6D, latitude, longitude });
         return res.status(400).json({ message: 'Missing required registration data (name, mobile, code6D, latitude, longitude).' });
     }
-
-    // Validate coordinate types (simple check)
     if (typeof latitude !== 'number' || typeof longitude !== 'number') {
          console.warn('Registration attempt with invalid coordinate types:', { latitude, longitude });
          return res.status(400).json({ message: 'Latitude and Longitude must be numbers.' });
     }
-
-    // --- Add more validation as needed ---
+    // --- Optional: Compare mobile from body with verifiedPhoneNumber from token ---
+    // if (mobile !== verifiedPhoneNumber) {
+    //      console.warn(`Mobile number mismatch: body (${mobile}) vs token (${verifiedPhoneNumber})`);
+    //      return res.status(400).json({ message: 'Request mobile number does not match verified number.' });
+    // }
 
     try {
-        // Check if mobile number already exists
-        const existingMobile = await prisma.address.findUnique({ where: { mobile } });
+        // Check if mobile number already exists (using verified number might be better)
+        const existingMobile = await prisma.address.findUnique({ where: { mobile: verifiedPhoneNumber || mobile } }); // Prefer verified number
         if (existingMobile) {
-            console.log(`Conflict: Mobile ${mobile} exists.`);
+            console.log(`Conflict: Mobile ${verifiedPhoneNumber || mobile} exists.`);
+            // Consider returning a different status code or message if needed
             return res.status(409).json({ message: 'Mobile number already registered.' });
         }
 
@@ -73,75 +94,39 @@ app.post('/register', async (req: Request, res: Response) => {
         const newAddress = await prisma.address.create({
             data: {
                 name,
-                mobile,
+                mobile: verifiedPhoneNumber || mobile, // Store the verified number if available
                 code6D,
-                latitude,  // Prisma expects Float, ensure type matches
-                longitude, // Prisma expects Float, ensure type matches
-                // Safely access context properties, defaulting to null if context or properties are missing
+                latitude,
+                longitude,
                 sublocality: context?.sublocality || null,
                 locality: context?.locality || null,
+                firebaseUid: firebaseUid, // *** Store the Firebase UID *** (Ensure schema has this field)
             },
         });
 
         console.log('Registration successful:', newAddress.id);
         res.status(201).json({ message: 'Registration successful!', address: newAddress });
 
-    } catch (error: any) { // Catch block with type annotation
+    } catch (error: any) {
         console.error('Registration Error:', error);
-        // Provide a more generic error message for security
+        // Check for specific Prisma errors if needed (e.g., unique constraint violation)
         res.status(500).json({ message: 'Registration failed due to a server error.' });
     }
 });
 
-// Endpoint to SIMULATE sending an OTP
-app.post('/send-otp', (req: Request, res: Response) => {
-    const { mobile } = req.body;
-    if (!mobile) {
-        console.warn('Send OTP: Missing mobile number.');
-        return res.status(400).json({ message: 'Mobile number is required.' });
-    }
 
-    // --- TODO: Add real SMS sending logic here ---
-    console.log(`SIMULATING OTP send to ${mobile}. Use code 1234.`);
-    // ---
-
-    // Respond success (even for simulation)
-    res.status(200).json({ message: 'Simulated OTP sent successfully.' });
-});
-
-// Endpoint to SIMULATE verifying an OTP
-app.post('/verify-otp', (req: Request, res: Response) => {
-    const { mobile, otp } = req.body;
-    if (!mobile || !otp) {
-        console.warn('Verify OTP: Missing mobile or OTP.');
-        return res.status(400).json({ message: 'Mobile number and OTP are required.' });
-    }
-
-    console.log(`SIMULATING OTP verification for ${mobile} with code ${otp}`);
-
-    // --- TODO: Add real OTP verification logic here ---
-
-    // --- Simulation Logic ---
-    if (otp === '1234') {
-        console.log('Simulated OTP verified.');
-        res.status(200).json({ message: 'OTP verified successfully.' });
-    } else {
-        console.log('Simulated incorrect OTP.');
-        res.status(400).json({ message: 'Incorrect verification code.' });
-    }
-});
+// --- Removed /send-otp and /verify-otp routes ---
 
 
 // --- Start Server ---
 app.listen(PORT, () => {
-  console.log(`⚡️[server]: Backend server is running at http://localhost:${PORT}`); // Log message reflects the actual port
+  console.log(`⚡️[server]: Backend server is running at http://localhost:${PORT}`);
 });
 
 
 // Optional: Graceful shutdown handlers
 process.on('SIGTERM', () => {
     console.log('SIGTERM signal received: closing HTTP server')
-    // Add potential cleanup like closing DB connections if needed (Prisma often handles this)
     process.exit(0)
 });
 
