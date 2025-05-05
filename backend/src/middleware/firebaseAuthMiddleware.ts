@@ -1,32 +1,46 @@
 // backend/src/middleware/firebaseAuthMiddleware.ts
-import { Request, Response, NextFunction } from 'express';
-import admin from 'firebase-admin';
+import { Request, Response, NextFunction } from 'express'; // Import Express types
+import admin from 'firebase-admin'; // Import Firebase Admin SDK
 
-// Extend the Express Request interface to include the user property
+// --- Define the AuthenticatedRequest Interface ---
+// Extend the standard Express Request to include an optional 'user' property
+// which will hold the decoded Firebase token data.
 export interface AuthenticatedRequest extends Request {
-    user?: admin.auth.DecodedIdToken; // Add user property - it might be undefined if token fails
+    user?: admin.auth.DecodedIdToken; // 'user' might be undefined if authentication fails
 }
+// --- End Interface Definition ---
 
+// --- Middleware Function ---
 export const verifyFirebaseToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
-    const token = req.headers.authorization?.split('Bearer ')[1]; // Get token from Authorization header
 
-    // Or get token from request body if you send it there
-    // const token = req.body.firebaseToken;
+    // Extract token from the request body (as sent by the frontend)
+    const token = req.body.firebaseToken;
 
+    // Check if token exists
     if (!token) {
-        console.warn('[AuthMiddleware]: No token provided.');
+        console.warn('[AuthMiddleware]: No token provided in request body (firebaseToken).');
+        // Send 401 Unauthorized if no token is found
         res.status(401).json({ message: 'Unauthorized: No token provided.' });
-        return;
+        return; // Stop processing the request
     }
 
+    // Verify the token using Firebase Admin SDK
     try {
+        // verifyIdToken checks signature, expiry, and project ID
         const decodedToken = await admin.auth().verifyIdToken(token);
+
+        // Log success and attach the decoded token (user info) to the request object
         console.log('[AuthMiddleware]: Token verified successfully for UID:', decodedToken.uid);
-        req.user = decodedToken; // Attach decoded token (includes uid, phone_number, etc.) to request object
-        next(); // Proceed to the next middleware or route handler
+        req.user = decodedToken; // Make user info available to subsequent route handlers
+
+        next(); // Pass control to the next middleware or the actual route handler
+
     } catch (error: any) {
+        // Handle errors during token verification (invalid token, expired token, etc.)
         console.error('[AuthMiddleware]: Error verifying Firebase token:', error.message);
-        // Handle specific errors if needed (e.g., 'auth/id-token-expired')
+        // Send 403 Forbidden for invalid/expired tokens
         res.status(403).json({ message: 'Forbidden: Invalid or expired token.' });
+        // Do not call next() on error
     }
 };
+// --- End Middleware Function ---
