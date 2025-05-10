@@ -1,46 +1,46 @@
 // backend/src/middleware/firebaseAuthMiddleware.ts
-import { Request, Response, NextFunction } from 'express'; // Import Express types
-import admin from 'firebase-admin'; // Import Firebase Admin SDK
+import { Request, Response, NextFunction } from 'express';
+import admin from 'firebase-admin';
+import { DecodedIdToken } from 'firebase-admin/auth'; // Good practice to import specific types
 
-// --- Define the AuthenticatedRequest Interface ---
-// Extend the standard Express Request to include an optional 'user' property
-// which will hold the decoded Firebase token data.
 export interface AuthenticatedRequest extends Request {
-    user?: admin.auth.DecodedIdToken; // 'user' might be undefined if authentication fails
+    user?: DecodedIdToken; 
 }
-// --- End Interface Definition ---
 
-// --- Middleware Function ---
 export const verifyFirebaseToken = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+    const authorizationHeader = req.headers.authorization; // Get the Authorization header
 
-    // Extract token from the request body (as sent by the frontend)
-    const token = req.body.firebaseToken;
-
-    // Check if token exists
-    if (!token) {
-        console.warn('[AuthMiddleware]: No token provided in request body (firebaseToken).');
-        // Send 401 Unauthorized if no token is found
-        res.status(401).json({ message: 'Unauthorized: No token provided.' });
-        return; // Stop processing the request
+    if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
+        console.warn('[AuthMiddleware]: No Firebase ID token was passed as a Bearer token in the Authorization header.');
+        res.status(401).json({ message: 'Unauthorized: No token provided or incorrect format.' });
+        return; 
     }
 
-    // Verify the token using Firebase Admin SDK
+    const idToken = authorizationHeader.split('Bearer ')[1]; // Extract the token part
+
+    if (!idToken) { // Extra check in case split somehow fails or token is empty
+        console.warn('[AuthMiddleware]: Token string is empty after splitting Bearer.');
+        res.status(401).json({ message: 'Unauthorized: Token malformed.' });
+        return;
+    }
+
     try {
-        // verifyIdToken checks signature, expiry, and project ID
-        const decodedToken = await admin.auth().verifyIdToken(token);
+        const decodedToken = await admin.auth().verifyIdToken(idToken); // Use the extracted idToken
 
-        // Log success and attach the decoded token (user info) to the request object
-        console.log('[AuthMiddleware]: Token verified successfully for UID:', decodedToken.uid);
-        req.user = decodedToken; // Make user info available to subsequent route handlers
+        console.log([AuthMiddleware]: Token verified successfully for UID: ${decodedToken.uid});
+        req.user = decodedToken; 
 
-        next(); // Pass control to the next middleware or the actual route handler
+        next(); 
 
     } catch (error: any) {
-        // Handle errors during token verification (invalid token, expired token, etc.)
-        console.error('[AuthMiddleware]: Error verifying Firebase token:', error.message);
-        // Send 403 Forbidden for invalid/expired tokens
-        res.status(403).json({ message: 'Forbidden: Invalid or expired token.' });
-        // Do not call next() on error
+        console.error('[AuthMiddleware]: Error verifying Firebase ID token:', error.code, error.message);
+        let friendlyMessage = 'Forbidden: Invalid or expired token.';
+        if (error.code === 'auth/id-token-expired') {
+            friendlyMessage = 'Forbidden: Token has expired. Please re-authenticate.';
+        } else if (error.code === 'auth/argument-error') {
+            friendlyMessage = 'Forbidden: Token is malformed or invalid.';
+        }
+        // Add more specific error checks if needed based on Firebase Admin SDK error codes
+        res.status(403).json({ message: friendlyMessage, code: error.code });
     }
 };
-// --- End Middleware Function ---
