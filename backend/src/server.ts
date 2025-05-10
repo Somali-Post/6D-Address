@@ -20,7 +20,7 @@ export const verifyFirebaseToken = async (req: AuthenticatedRequest, res: Respon
   try {
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     req.user = decodedToken;
-    console.log([AuthMiddleware] Token verified for UID: ${decodedToken.uid});
+    console.log(`[AuthMiddleware]: Token verified successfully for UID: ${decodedToken.uid}`);
     next();
   } catch (error) {
     console.error('[AuthMiddleware] Error verifying Firebase ID token:', error);
